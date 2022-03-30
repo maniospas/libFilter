@@ -1,9 +1,7 @@
-from utils.tester import test
-from utils.importer import load_data
 import pygrank as pg
-import numpy as np
 
-class AbsorbingWalksSymmetric(pg.RecursiveGraphFilter):
+
+class SymmetricAbsorbingRandomWalks(pg.RecursiveGraphFilter):
     """ Implementation of partial absorbing random walks for Lambda = (1-alpha)/alpha diag(absorption vector) .
     """
 
@@ -62,12 +60,5 @@ class AbsorbingWalksSymmetric(pg.RecursiveGraphFilter):
 
     def references(self):
         refs = super().references()
-        refs[0] = "partially absorbing random walks \\cite{wu2012learning}"
+        refs[0] = "symmetric partially absorbing random walks \\cite{krasanakis2022fast}"
         return refs
-
-
-pre = pg.preprocessor(assume_immutability=False, normalization="symmetric", renormalize=1)
-arw = AbsorbingWalksSymmetric(preprocessor=pre, tol=1.E-12, max_iters=1000, symmetric=True)
-
-apps, libs, pairs = load_data()
-test(apps, libs, pairs, arw, rm=5)

@@ -1,6 +1,5 @@
 import random
 import numpy as np
-import tqdm
 
 
 def set_seed(seed):
