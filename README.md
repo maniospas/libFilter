@@ -9,7 +9,6 @@ by Emmanouil Krasanakis and Andreas Symeonidis.
 **Contact:** manios.krasanakis@issel.ee.auth.gr
 
 ## Contents
-
 1. [Symmetric Absorbing Random Walks](#symmetric-absorbing-random-walks)
 2. [Replicating Library Recommendation Experiments](#replicating-library-recommendation-experiments)
 
@@ -35,5 +34,5 @@ base outcome is also possible.
 :bulb: This graph filter will be import-able directly from
 the future release `pygrank 0.2.8`.
 
-# Replicating Library Recommendation Experiments
+## Replicating Library Recommendation Experiments
 TODO
