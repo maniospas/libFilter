@@ -87,10 +87,15 @@ class Packages:
             tree = html.fromstring(requests.get("https://pypi.org/search/?q="+keyword+"&page="+str(page)).text)
             pending.extend([package.text for package in tree.xpath("//span[contains(@class, 'package-snippet__name')]")])
             if update is not None:
-                update(page, max_pages)
+                update(page*100, max_pages*100)
             distance = distance | {package.lower(): 0 for package in pending}
+            remaining_original = set(pending)
+            page_size = len(remaining_original)
             while pending:
-                name = pending.pop(0).lower()
+                remaining_original.remove(pending[-1])
+                name = pending.pop(len(pending)-1).lower()
+                if update is not None:
+                    update(page * 100+(page_size-len(remaining_original))*100//len(page_size), max_pages * 100)
                 if distance[name] > max_distance:
                     continue
                 if name in self.packages:
