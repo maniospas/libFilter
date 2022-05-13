@@ -95,7 +95,7 @@ class Packages:
                 remaining_original.remove(pending[-1])
                 name = pending.pop(len(pending)-1).lower()
                 if update is not None:
-                    update(page * 100+(page_size-len(remaining_original))*100//len(page_size), max_pages * 100)
+                    update(page * 100+(page_size-len(remaining_original))*100//page_size, max_pages * 100)
                 if distance[name] > max_distance:
                     continue
                 if name in self.packages:
