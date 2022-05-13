@@ -11,8 +11,31 @@ stopwords = set(nltk.corpus.stopwords.words('english'))
 stemmer = PorterStemmer()
 
 
-def tokenize(text, stem=True):
-    return [stemmer.stem(word) if stem else word for word in text.split(" ") if len(word) > 0 and word.lower() not in stopwords]
+def prepare_for_split(ret):
+    ret = ret.replace("/", " ")
+    ret = ret.replace("\\", " ")
+    ret = ret.replace("-", " ")
+    ret = ret.replace("_", " ")
+    ret = ret.replace("-", " ")
+    ret = ret.replace(".", " ")
+    ret = ret.replace("2", " ")
+    ret = ret.replace("|", " ")
+    ret = ret.replace(":", " ")
+    ret = ret.replace(".", " ")
+    ret = ret.replace("(", " ")
+    ret = ret.replace(")", " ")
+    ret = ret.replace("[", " ")
+    ret = ret.replace("]", " ")
+    ret = ret.replace("<", " ")
+    ret = ret.replace(">", " ")
+    ret = ret.replace("=", " ")
+    return ret
+
+
+def tokenize(text, stem=True, include_empty=False):
+    if include_empty:
+        return ["" if word.lower() in stopwords and stem else stemmer.stem(word) if stem else word for word in prepare_for_split(text).split(" ") if len(word) > 0]
+    return [stemmer.stem(word) if stem else word for word in prepare_for_split(text).split(" ") if len(word) > 0 and word.lower() not in stopwords]
 
 
 class Package:
@@ -32,24 +55,7 @@ class Package:
 
     def text(self):
         ret = self.name+" "+((" ".join(self.keywords)) if self.keywords is not None else "")+" "+(self.summary if self.summary is not None else "")#+" "+self.description
-        ret = ret.replace("/", " ")
-        ret = ret.replace("\\", " ")
-        ret = ret.replace("-", " ")
-        ret = ret.replace("_", " ")
-        ret = ret.replace("-", " ")
-        ret = ret.replace(".", " ")
-        ret = ret.replace("2", " ")
-        ret = ret.replace("|", " ")
-        ret = ret.replace(":", " ")
-        ret = ret.replace(".", " ")
-        ret = ret.replace("(", " ")
-        ret = ret.replace(")", " ")
-        ret = ret.replace("[", " ")
-        ret = ret.replace("]", " ")
-        ret = ret.replace("<", " ")
-        ret = ret.replace(">", " ")
-        ret = ret.replace("=", " ")
-        return ret
+        return prepare_for_split(ret)
 
 
 class Packages:

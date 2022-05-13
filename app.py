@@ -81,7 +81,8 @@ def local_search(query, top, identifier, produce_mode):
 
     update_search(0, 1)
 
-    packages.search(query, max_pages=5, max_distance=3, update=update_search)
+    if len(tokenize(query)) > 0:
+        packages.search(query, max_pages=5, max_distance=3, update=update_search)
 
     def update_mining(curr_progress, max_progress):
         progress[identifier] = min(99, 100*curr_progress // max_progress)
@@ -103,11 +104,16 @@ def local_search(query, top, identifier, produce_mode):
     results = [package.name for package in sorted(packages.all(), key=lambda project: -recs.get(project, 0))[:top]]
 
     ret = """<div class="d-flex" style="height: 40px;"></div>"""
-    wrong = set([original for original, word in zip(tokenize(query, False), tokenize(query)) if word not in nodes])
+    wrong = set([original for original, word in zip(tokenize(query, False, True), tokenize(query, True, True)) if word not in nodes])
     if wrong:
         ret += f"""<div class="alert alert-danger d-flex align-items-center" role="alert">
                 <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Danger:"><use xlink:href="#exclamation-triangle-fill"/></svg>
-                <div>Unused search keywords: {", ".join(wrong)}</div>
+                <div>Unused keywords: {", ".join(wrong)}</div>
+                </div>"""
+    if len(tokenize(query)) == 0:
+        ret += f"""<div class="alert alert-danger d-flex align-items-center" role="alert">
+                <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Danger:"><use xlink:href="#exclamation-triangle-fill"/></svg>
+                <div>Empty query recommends generally important libraries</div>
                 </div>"""
 
     for i, package in enumerate(results):
@@ -120,4 +126,3 @@ def local_search(query, top, identifier, produce_mode):
             .replace("LIBRARYMETADATA", package.info["keywords"] if package.info["keywords"] is not None else "")
     requests[identifier] = ret
     progress[identifier] = 100
-
