@@ -9,20 +9,20 @@ import threading
 import pygrank as pg
 
 
-app = Flask(__name__)
+application = Flask(__name__)
 packages = Packages()
 requests = dict()
 progress = dict()
 
 
-@app.route('/')
+@application.route('/')
 def hello():
     with open('index.html') as file:
         contents = file.read()
     return contents
 
 
-@app.route("/search", methods=['GET', 'POST'])
+@application.route("/search", methods=['GET', 'POST'])
 def search():
     query = str(request.json["search"])
     task = set(request.json["task"])
@@ -30,16 +30,16 @@ def search():
     requests[identifier] = ""
     progress[identifier] = 0
     threading.Thread(target=local_search, args=(query, 20, identifier, "2" in task)).start()
-    return app.response_class(
+    return application.response_class(
         response=json.dumps({"identifier": identifier}),
         status=200,
         mimetype='application/json'
     )
 
 
-@app.route('/status/<identifier>')
+@application.route('/status/<identifier>')
 def status(identifier):
-    return app.response_class(
+    return application.response_class(
         response=json.dumps({"progress": str(progress[identifier]), "result": requests[identifier]}),
         status=200,
         mimetype='application/json'
