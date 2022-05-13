@@ -92,7 +92,8 @@ class Packages:
             remaining_original = set(pending)
             page_size = len(remaining_original)
             while pending:
-                remaining_original.remove(pending[-1])
+                if pending[-1] in remaining_original:
+                    remaining_original.remove(pending[-1])
                 name = pending.pop(len(pending)-1).lower()
                 if update is not None:
                     update(page * 100+(page_size-len(remaining_original))*100//page_size, max_pages * 100)
