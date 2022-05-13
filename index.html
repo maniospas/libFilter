@@ -47,7 +47,7 @@
             .then(res => res.json())
             .then(response => {
               identifier = response.identifier;
-              updating = setInterval(() => {update_search(identifier);}, 200);
+              updating = setInterval(() => {update_search(identifier);}, 500);
             });
         }
   </script>
