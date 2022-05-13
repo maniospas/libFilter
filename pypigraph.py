@@ -108,7 +108,8 @@ class Packages:
                     try:
                         package = Package(requests.get("https://pypi.org/pypi/" + name + "/json").json()["info"])
                         print(name, distance[name], " (new)")
-                        self.packages[package.name] = package
+                        with graph_creation_lock:
+                            self.packages[package.name] = package
                     except:
                         print("Failed to retrieve", name, "from pypi.org")
                 for dependency in package.dependencies:
@@ -121,7 +122,7 @@ class Packages:
 
     def dependencies(self, packages=None):
         if packages is None:
-            packages = self.all()
+            packages = list(self.all())
         pairs = [(self.packages[package.name], self.packages[dependency])
                  for package in packages
                  for dependency in package.dependencies
@@ -131,7 +132,7 @@ class Packages:
     def create_graph(self, packages=None, words=True, from_dependencies=True):
         with graph_creation_lock:
             if packages is None:
-                packages = self.all()
+                packages = list(self.all())
             if not words:
                 return nx.Graph(self.dependencies(packages))
             if not from_dependencies:

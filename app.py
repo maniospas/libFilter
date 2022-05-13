@@ -1,4 +1,6 @@
-# <<< flask run
+# test: flask run
+# deploy: python3.9 -m gunicorn -w 1 -b 0.0.0.0:5000 app
+
 
 from pypigraph import Packages, tokenize
 from graph_filter import SymmetricAbsorbingRandomWalks
