@@ -82,7 +82,7 @@ def local_search(query, top, identifier, produce_mode):
     update_search(0, 1)
 
     if len(tokenize(query)) > 0:
-        packages.search(query, max_pages=5, max_distance=3, update=update_search)
+        packages.search(query, max_pages=5, max_distance=2, update=update_search)
 
     def update_mining(curr_progress, max_progress):
         progress[identifier] = min(99, 100*curr_progress // max_progress)

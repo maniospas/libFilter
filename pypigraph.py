@@ -49,7 +49,7 @@ class Package:
         self.dependencies = info.get("requires_dist", [])
         self.dependencies = list() if self.dependencies is None else [
             dependency.split("(")[0].strip().split("[")[0].strip().split(" ")[0].strip().split(";")[0].strip()
-                .split(">")[0].strip().split("<")[0].strip() for dependency in self.dependencies]
+                .split(">")[0].strip().split("<")[0].split("~")[0].strip() for dependency in self.dependencies]
         self.dependencies = [dependency.lower() for dependency in self.dependencies if dependency != "extra"]
         self.info = info
 
