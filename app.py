@@ -1,5 +1,5 @@
 # test: flask run
-# deploy: python3.9 -m gunicorn -w 1 -b 0.0.0.0:5000 app
+# deploy: nohup python3.9 -m gunicorn -w 1 -b 0.0.0.0:5000 app & disown
 
 
 from pypigraph import Packages, tokenize
@@ -9,6 +9,9 @@ import json
 import uuid
 import threading
 import pygrank as pg
+import sys
+
+sys.stderr = sys.stdout
 
 
 application = Flask(__name__)
@@ -39,10 +42,16 @@ def search():
     )
 
 
+old_request = """<div class="alert alert-danger d-flex align-items-center" role="alert">
+                <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Danger:"><use xlink:href="#exclamation-triangle-fill"/></svg>
+                <div>Request no longer valid (e.g. due to server restart).</div>
+                </div>"""
+
 @application.route('/status/<identifier>')
 def status(identifier):
     return application.response_class(
-        response=json.dumps({"progress": str(progress[identifier]), "result": requests[identifier]}),
+        response=json.dumps({"progress": str(progress.get(identifier, "100")),
+                             "result": requests.get(identifier, old_request)}),
         status=200,
         mimetype='application/json'
     )
