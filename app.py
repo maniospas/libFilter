@@ -126,3 +126,7 @@ def local_search(query, top, identifier, produce_mode):
             .replace("LIBRARYMETADATA", package.info["keywords"] if package.info["keywords"] is not None else "")
     requests[identifier] = ret
     progress[identifier] = 100
+
+
+if __name__ == "__main__":
+    application.run(host='0.0.0.0')
