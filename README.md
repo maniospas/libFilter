@@ -1,10 +1,16 @@
-# LibFilter
+# FLARE - Fast Library Recommendation
 This repository holds the code necessary to replicate the manuscript 
 titled *Fast Library Recommendation in Software Dependency Graphs 
 with Symmetric Partially Absorbing Random Walks* 
-by Emmanouil Krasanakis and Andreas Symeonidis. 
+by Emmanouil Krasanakis and Andreas Symeonidis.
 
-**Dependencies:** *numpy, networkx, pygrank*<br>
+It additionally 
+hosts the code for a server implementing a variation of this
+publication to perform keyword-based library recommendation at:
+
+http://83.212.100.59:5000
+
+**Dependencies:** *numpy, networkx, pygrank, nltk, flask*<br>
 **License:** Apache 2.0<br/>
 **Contact:** manios.krasanakis@issel.ee.auth.gr
 
