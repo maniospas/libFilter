@@ -4,8 +4,10 @@ import json, os
 from nltk.stem import PorterStemmer
 import nltk
 import networkx as nx
+from threading import Lock
 
 
+graph_creation_lock = Lock()
 nltk.download('stopwords')
 stopwords = set(nltk.corpus.stopwords.words('english'))
 stemmer = PorterStemmer()
@@ -127,20 +129,21 @@ class Packages:
         return pairs
 
     def create_graph(self, packages=None, words=True, from_dependencies=True):
-        if packages is None:
-            packages = self.all()
-        if not words:
-            return nx.Graph(self.dependencies(packages))
-        if not from_dependencies:
-            word_dependencies = [(package, stemmer.stem(word))
-                                 for package in packages
-                                 for word in tokenize(package.text())]
-        else:
-            word_dependencies = [(self.packages[dependency], stemmer.stem(word))
-                                 for package in packages
-                                 for word in tokenize(package.text())
-                                 for dependency in package.dependencies
-                                 if dependency in self.packages
-                                 ]
-        dependencies = word_dependencies
+        with graph_creation_lock:
+            if packages is None:
+                packages = self.all()
+            if not words:
+                return nx.Graph(self.dependencies(packages))
+            if not from_dependencies:
+                word_dependencies = [(package, stemmer.stem(word))
+                                     for package in packages
+                                     for word in tokenize(package.text())]
+            else:
+                word_dependencies = [(self.packages[dependency], stemmer.stem(word))
+                                     for package in packages
+                                     for word in tokenize(package.text())
+                                     for dependency in package.dependencies
+                                     if dependency in self.packages
+                                     ]
+            dependencies = word_dependencies
         return nx.Graph(dependencies)
