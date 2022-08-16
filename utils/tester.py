@@ -18,15 +18,15 @@ def _test(graph_filter, test_apps, libs, global_train_graph, test_graph, verbose
         sum_time += time()-tic
         app_libs = [lib for lib in libs if not train_graph.has_edge(app, lib)]
         evaluator5.evaluate(labels=[1. if test_graph.has_edge(app, lib) else 0 for lib in app_libs],
-                            recommendations=[recommendations.get(lib,0) for lib in app_libs], app_libs=app_libs)
+                            recommendations=[recommendations.get(lib, 0) for lib in app_libs], app_libs=app_libs)
         evaluator10.evaluate(labels=[1. if test_graph.has_edge(app, lib) else 0 for lib in app_libs],
-                             recommendations=[recommendations.get(lib,0) for lib in app_libs], app_libs=app_libs)
+                             recommendations=[recommendations.get(lib, 0) for lib in app_libs], app_libs=app_libs)
         if verbose:
             sys.stdout.write(
-                '\rApp ' + str(i) + ' / ' + str(len(test_apps)) + ': '
+                '\r' + str(i) + '/' + str(len(test_apps)) + ': '
                 + str(evaluator5) + ' \t '
                 + str(evaluator10) + '\t '
-                + str(sum_time/(i+1))+' sec ')
+                + str(sum_time/(i+1))+' sec')
             sys.stdout.flush()
     return np.mean(evaluator5.f1s)
 

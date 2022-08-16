@@ -24,12 +24,12 @@ class Evaluator:
         return self
 
     def __str__(self):
-        return f"AUC {np.mean(self.aucs):.3f} \t "\
-              +f"MP {np.mean(self.precs):.3f} \t "\
-              +f"MR {np.mean(self.recs):.3f} \t "\
-              +f"F1 {np.mean(self.f1s):.3f} \t "\
-              +f"MAP {np.mean(self.maps):.3f} \t "\
-              +f"coverage {len(self.cov) / len(self.libs):.3f}"
+        return f"AUC {np.mean(self.aucs):.3f} \t " \
+               + f"MP {np.mean(self.precs):.3f} \t "\
+               + f"MR {np.mean(self.recs):.3f} \t "\
+               + f"F1 {np.mean(self.f1s):.3f} \t "\
+               + f"MAP {np.mean(self.maps):.3f} \t " \
+               + f"coverage {len(self.cov) / len(self.libs):.3f}"
 
 
 def auc(labels, predictions):
