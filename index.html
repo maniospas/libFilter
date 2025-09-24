@@ -306,6 +306,12 @@ footer {
       <option value="1" selected>Reuse</option>
       <option value="2">Build</option>
     </select>
+      <select id="speed">
+      <option value="0">Feeling lucky (if libraries are already indexed)</option>
+      <option value="1">Quick run</option>
+      <option value="2" selected>Improve index with relevant libraries first</option>
+      <option value="3">Deeply explore and index related options</option>
+    </select>
 
     <div id="controls">
       <button type="submit" id="search-btn">Recommend Libraries</button>
@@ -387,6 +393,7 @@ function search() {
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
       task: document.getElementById("task").value,
+      speed: document.getElementById("speed").value,
       search: document.getElementById("description").value
     })
   })
@@ -477,6 +484,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 </script>
+<script>
+const resultsDiv   = document.getElementById('results');
+const cardsWrapper = document.getElementById('info-cards');
+
+if (
+    resultsDiv.querySelector('.result-card') ||
+    resultsDiv.querySelector('.progress-alert')
+) {
+    cardsWrapper.style.display = 'none';
+} else {
+    cardsWrapper.style.display = 'block';
+}
+</script>
+
+
 
 </body>
 </html>
