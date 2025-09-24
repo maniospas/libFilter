@@ -256,7 +256,7 @@ class Packages:
         pending.extend(matching)
         distance.update({name.lower(): 0 for name in matching})
         if update is not None:
-            update(0, len(matching), "Searching for related packages to analyze")
+            update(0, len(matching), "Searching for related packages to analyze", "starting")
         remaining_original = set(matching)
         total = len(remaining_original)
         with tqdm(total=total, desc="Searching PyPI") as pbar:
@@ -268,7 +268,7 @@ class Packages:
                 if update is not None and total:
                     done = total - len(remaining_original)
                     update(done, total, "Indexing new packages: "+name,
-                           str(len(self.packages))+"/" +str(len(all_names))+" indexed")
+                           str(len(self.packages))+" / " +str(len(all_names))+" of PyPI")
                 if distance[name] > max_distance:
                     continue
                 if name in self.packages:

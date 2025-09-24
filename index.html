@@ -26,6 +26,10 @@ body {
   line-height: 1.45;
 }
 
+.auth-links span {
+  margin-top: 7px;
+}
+
 /* Header */
 header {
   background: #000;
@@ -152,11 +156,37 @@ main {
   border-left: 4px solid #e11d48;
   color: #fca5a5;
 }
-.progress-alert .percent {
+
+.progress-alert {
   border-left: 4px solid #1de148;
+}
+.progress-alert .percent {
   color: var(--link);
   font-weight: 600;
 }
+
+/* --- Auth Links --- */
+.auth-links {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+.auth-links a {
+  color: var(--accent);
+  text-decoration: none;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid #333;
+  border-radius: var(--radius);
+  background: #000;
+  transition: background .2s;
+}
+.auth-links a:hover {
+  background: #333;
+}
+
 
 /* Form */
 form {
@@ -250,12 +280,19 @@ footer {
   font-size: .85rem;
   padding: 1rem 0 2rem;
 }
+
+.star { display: none; }
+.logged-in .star { display: inline; cursor: pointer; color: #666; font-size: 1.5em; }
+.logged-in .star.starred { color: gold; }
+
 </style>
 </head>
 
 <body>
 
 <header>
+    <div class="auth-links" id="auth-links"></div>
+
   <h1>⚡ FLARE</h1>
   <p>PyPI library recommendations from your project description</p>
 </header>
@@ -335,7 +372,7 @@ function update_search(identifier) {
         document.getElementById("results").insertAdjacentElement("afterend", cards);
         cards.style.display = "grid";
       }
-      document.getElementById("results").innerHTML = styleResults(response.result);
+      document.getElementById("results").innerHTML = response.result;
     });
 }
 
@@ -383,6 +420,62 @@ function styleResults(rawHtml) {
 }
 
 document.getElementById("cancel-btn").addEventListener("click", cancelSearch);
+</script>
+
+<script>
+const authLinks = document.getElementById("auth-links");
+if (window.FLARE_USER) {
+  document.body.classList.add("logged-in");
+  authLinks.innerHTML =
+    `<span>👤 ${window.FLARE_USER}</span>
+     <a href="/logout">Logout</a>`;
+  fetch("/stars")
+    .then(r=>r.json())
+    .then(list => {
+      list.forEach(pkg => {
+        const el = document.querySelector(`[data-pkg="${pkg}"] .star`);
+        if (el) el.classList.add("starred");
+      });
+    });
+} else {
+  authLinks.innerHTML =
+    `<a href="/register">Register</a>
+     <a href="/login">Login</a>`;
+}
+function toggleStar(pkg) {
+  const el = document.querySelector(`[data-pkg="${pkg}"] .star`);
+  if (!el) return;
+  const nowStarred = !el.classList.contains("starred"); // what it *will* become
+  el.classList.toggle("starred");
+  el.textContent = nowStarred ? "★" : "☆";
+  const endpoint = nowStarred ? "/star/" : "/unstar/";
+  fetch(endpoint + pkg, { method: "POST" });
+}
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    if (window.FLARE_LAST_SEARCH) {
+        const id = window.FLARE_LAST_SEARCH;
+        // Immediately show an empty progress container
+        document.getElementById("results").innerHTML =
+            '<div id="progress-container">Loading…</div>';
+
+        function poll() {
+            fetch(`/status/${id}`)
+                .then(r => r.json())
+                .then(data => {
+                    // `data.result` is the HTML snippet for the progress bar or final results
+                    document.getElementById("results").innerHTML = data.result;
+
+                    // keep polling until finished
+                    if (parseInt(data.progress, 10) < 100) {
+                        setTimeout(poll, 2000);
+                    }
+                });
+        }
+        poll();
+    }
+});
 </script>
 
 </body>

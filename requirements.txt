@@ -4,3 +4,4 @@ lxml
 requests
 nltk
 tqdm
+bcrypt
