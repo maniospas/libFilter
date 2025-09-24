@@ -1,12 +1,33 @@
 import re
 
 import requests
+from tqdm import tqdm
 from lxml import html
 import json, os
 from nltk.stem import PorterStemmer
 import nltk
 import networkx as nx
 from threading import Lock
+import requests
+from threading import Lock
+from lxml import html  # only needed if your Package class still uses it internally
+
+# ---- NEW: fetch all names from the Simple API ----
+try:
+    resp = requests.get("https://pypi.org/simple/", timeout=30)
+    resp.raise_for_status()
+except Exception as e:
+    print("Failed to retrieve PyPI simple index:", e)
+
+# extract package names from the simple index HTML
+# each line is like: <a href='...'>package-name</a>
+all_names = []
+for line in resp.text.splitlines():
+    if "<a href=" in line:
+        start = line.find('>') + 1
+        end = line.find('</a>', start)
+        if start > 0 and end > start:
+            all_names.append(line[start:end])
 
 
 graph_creation_lock = Lock()
@@ -15,6 +36,16 @@ nltk.download('wordnet')
 nltk.download('omw-1.4')
 from nltk.corpus import wordnet
 stopwords = set(nltk.corpus.stopwords.words('english'))
+
+def synonym_stems(word):
+    """Return a set of stemmed WordNet synonyms for a single word."""
+    syns = set()
+    for synset in wordnet.synsets(word):
+        for lemma in synset.lemmas():
+            for token in lemma.name().split("_"):
+                syns.add(stemmer.stem(token.lower()))
+    return syns
+
 
 
 def to_personalization(text, accepted):
@@ -67,8 +98,7 @@ def prepare_for_split(ret):
 
 
 def tokenize(text, stem=True, include_empty=False):
-    if include_empty:
-        return ["" if word.lower() in stopwords and stem else stemmer.stem(word) if stem else word for word in prepare_for_split(text).split(" ") if len(word) > 0]
+    if include_empty: return ["" if word.lower() in stopwords and stem else stemmer.stem(word) if stem else word for word in prepare_for_split(text).split(" ") if len(word) > 0]
     return [stemmer.stem(word) if stem else word for word in prepare_for_split(text).split(" ") if len(word) > 0 and word.lower() not in stopwords]
 
 
@@ -120,11 +150,9 @@ class Package:
                 try:
                     print("Retrieving readme from", homepage)
                     import requests
-                    x = requests.get(homepage.replace("github.com/", "raw.githubusercontent.com/")
-                                     + "/master/README.md")
+                    x = requests.get(homepage.replace("github.com/", "raw.githubusercontent.com/")+ "/master/README.md")
                     if x.status_code != 200:
-                        x = requests.get(homepage.replace("https://github.com/", "https://raw.githubusercontent.com/")
-                                         + "/main/README.md")
+                        x = requests.get(homepage.replace("https://github.com/", "https://raw.githubusercontent.com/")+ "/main/README.md")
                     self.description = x.text
                     self.info["description"] = self.description
                 except Exception as e:
@@ -167,19 +195,15 @@ class Packages:
                                     and prev_packages[dependency].homepage in homepages]
         return self
 
-    def all(self):
-        return self.packages.values()
+    def all(self): return self.packages.values()
 
     def load(self, filename="pypi.json"):
         self.filename = filename
-        if filename is None:
-            return
-        if not os.path.exists(filename):
-            return
+        if filename is None:   return
+        if not os.path.exists(filename): return
         with open(filename, "r") as file:
             for info in json.load(file):
-                if info["name"].lower() in self.packages:
-                    print("WARNING: Duplicate package "+info["name"].lower())
+                if info["name"].lower() in self.packages: print("WARNING: Duplicate package "+info["name"].lower())
                 self.packages[info["name"].lower()] = Package(info)
         print("Loaded", len(self.packages), "packages")
 
@@ -192,42 +216,78 @@ class Packages:
         with open(filename, "w") as file:
             file.write(json.dumps([package.info for package in self.packages.values()]))
 
-    def search(self, keyword, max_pages=1, max_distance=2, update=None):
-        keyword = keyword.lower()
-        pending = list()
-        distance = dict()
-        for page in range(max_pages):
-            tree = html.fromstring(requests.get("https://pypi.org/search/?q="+keyword+"&page="+str(page)).text)
-            pending.extend([package.text for package in tree.xpath("//span[contains(@class, 'package-snippet__name')]")])
-            if update is not None:
-                update(page*100, max_pages*100)
-            distance = distance | {package.lower(): 0 for package in pending}
-            remaining_original = set(pending)
-            page_size = len(remaining_original)
+    graph_creation_lock = Lock()  # keep your existing lock
+
+    from tqdm import tqdm
+
+    def synonym_stems(word):
+        """Return a set of stemmed WordNet synonyms for a single word."""
+        syns = set()
+        for synset in wordnet.synsets(word):
+            for lemma in synset.lemmas():
+                for token in lemma.name().split("_"):
+                    syns.add(stemmer.stem(token.lower()))
+        return syns
+
+    def search(self, keyword, max_new, max_distance=2, update=None):
+        """
+        Search for packages whose name contains any of the query words
+        (case-insensitive), expand query words with WordNet synonyms,
+        and recursively walk their dependencies up to `max_distance`.
+        Results are sorted by how many of the query+synonym words match.
+        """
+        query_words = keyword.lower().split()
+        expanded_query = set()
+        for w in query_words:
+            expanded_query.add(stemmer.stem(w))
+            expanded_query |= synonym_stems(w)
+        pending = []
+        distance = {}
+        scored_matches = []
+        for name in all_names:
+            words = set(stemmer.stem(x) for x in prepare_for_split(name).split())
+            score = len(words & expanded_query)
+            if score > 0:
+                scored_matches.append((score, name))
+        scored_matches.sort(reverse=True, key=lambda x: x[0])
+        matching = [name for _, name in scored_matches]
+        if len(matching) > max_new:
+            matching = matching[:max_new]
+        pending.extend(matching)
+        distance.update({name.lower(): 0 for name in matching})
+        if update is not None:
+            update(0, len(matching), "Searching for related packages to analyze")
+        remaining_original = set(matching)
+        total = len(remaining_original)
+        with tqdm(total=total, desc="Searching PyPI") as pbar:
             while pending:
-                if pending[-1] in remaining_original:
-                    remaining_original.remove(pending[-1])
-                name = pending.pop(len(pending)-1).lower()
-                if update is not None:
-                    update(page * 100+(page_size-len(remaining_original))*100//page_size, max_pages * 100)
+                name = pending.pop().lower()
+                if name in remaining_original:
+                    remaining_original.remove(name)
+                    pbar.update(1)
+                if update is not None and total:
+                    done = total - len(remaining_original)
+                    update(done, total, "Indexing new packages: "+name,
+                           str(len(self.packages))+"/" +str(len(all_names))+" indexed")
                 if distance[name] > max_distance:
                     continue
                 if name in self.packages:
-                    #print(name, distance[name])
                     package = self.packages[name]
                 else:
                     try:
-                        package = Package(requests.get("https://pypi.org/pypi/" + name + "/json").json()["info"])
-                        print(name, distance[name], " (new)")
+                        info = requests.get(f"https://pypi.org/pypi/{name}/json", timeout=5).json()["info"]
+                        package = Package(info)
+                        print("New:", name, distance[name])
                         with graph_creation_lock:
                             self.packages[package.name] = package
-                    except:
-                        print("Failed to retrieve", name, "from pypi.org")
+                    except Exception as e:
+                        print("Failed to retrieve", name, "from pypi.org:", e)
+                        continue
                 for dependency in package.dependencies:
-                    prev_distance = distance.get(dependency, float('inf'))
-                    next_distance = distance[name] + 1
-                    if next_distance < prev_distance:
-                        distance[dependency] = next_distance
+                    prev = distance.get(dependency, float('inf'))
+                    next_d = distance[name] + 1
+                    if next_d < prev:
+                        distance[dependency] = next_d
                         pending.append(dependency)
         self.save(self.filename)
 

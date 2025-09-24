@@ -1,105 +1,389 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <!-- Required meta tags -->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
-    <title>FLARE</title>
-  </head>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
-  <script>
-        var updating;
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLARE – PyPI Library Recommender</title>
 
-        function status(res) {
-          if (res.ok) {
-            return Promise.resolve(res);
-          }
-          else {
-            clearInterval(updating);
-            return Promise.reject(new Error(res.statusText));
-          }
-        }
+<style>
+:root {
+  --bg: #111;               /* matte black background */
+  --panel-bg: #1c1c1c;      /* dark grey panels */
+  --accent: #ffffff;        /* white text / accent */
+  --accent-muted: #e5e5e5;  /* muted white for secondary text */
+  --link: #60a5fa;          /* light blue links for results */
+  --radius: 10px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--accent);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  line-height: 1.45;
+}
 
-        async function update_search(identifier) {
-            fetch("/status/"+identifier, {
-              method: "GET",
-              headers: {'Content-Type': 'application/json'},
-            })
-            .then(status)
-            .then(res => res.json())
-            .then(response => {
-               if(response.progress=="100")
-                  clearInterval(updating);
-               document.getElementById("results").innerHTML = response.result;
-            });
-        }
+/* Header */
+header {
+  background: #000;
+  color: var(--accent);
+  text-align: center;
+  padding: 2rem 1rem;
+}
+header h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+}
+header p {
+  margin-top: .3rem;
+  font-size: 1rem;
+  color: var(--accent-muted);
+}
 
-        async function search() {
-            clearInterval(updating);
-            fetch("/search", {
-              method: "POST",
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({task: document.getElementById("task").value,
-                                    search: document.getElementById("description").value})
-            })
-            .then(status)
-            .then(res => res.json())
-            .then(response => {
-              identifier = response.identifier;
-              updating = setInterval(() => {update_search(identifier);}, 500);
-            });
-        }
-  </script>
-  <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
-      <symbol id="check-circle-fill" fill="currentColor" viewBox="0 0 16 16">
-        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
-      </symbol>
-      <symbol id="info-fill" fill="currentColor" viewBox="0 0 16 16">
-        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
-      </symbol>
-      <symbol id="exclamation-triangle-fill" fill="currentColor" viewBox="0 0 16 16">
-        <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
-      </symbol>
-  </svg>
-  <body>
-    <div class="g-1 row d-flex justify-content-center">
-        <div class="col-md-6 w-50">
-            <div class="d-flex" style="height: 10px;"></div>
-            <textarea class="form-control" id="description" rows="1" placeholder="Software description"></textarea>
-        </div>
+/* Main layout */
+main {
+  flex: 1;
+  width: 100%;
+  max-width: 1000px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+/* Cards */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px,1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+.card {
+  background: var(--panel-bg);
+  padding: 1.8rem;
+  border-radius: var(--radius);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+}
+.card h2 {
+  margin: 0 0 .5rem;
+  font-size: 1.25rem;
+}
+.card ul {
+  padding-left: 1.2rem;
+  list-style: none;
+  margin: .3rem 0 0;
+}
+.card li {
+  margin-bottom: .4rem;
+  position: relative;
+  padding-left: 1.4em;
+}
+.card li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+.search-result {
+  margin-bottom: 1.2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #333;
+}
+.search-result h3 {
+  margin: 0 0 .2rem;
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+.search-result h3 a {
+  color: var(--link);
+  text-decoration: none;
+}
+.search-result h3 a:hover { text-decoration: underline; }
+.search-result .link {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  margin-bottom: 0.2rem;
+}
+.search-result .description {
+  color: var(--accent-muted);
+  font-size: 0.85rem;
+  margin-bottom: 0.3rem;
+}
+.search-result .meta {
+  color: #9ca3af;
+  font-size: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.action-btn {
+  background: var(--accent);
+  color: #000;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: background .2s;
+}
+.action-btn:hover {
+  background: var(--accent-muted);
+}
+
+/* Progress / error messages */
+.progress-alert, .error-alert {
+  background: var(--panel-bg);
+  border: 1px solid #333;
+  border-radius: var(--radius);
+  padding: 0.8rem 1rem;
+  color: var(--accent);
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1rem 0;
+}
+.error-alert {
+  border-left: 4px solid #e11d48;
+  color: #fca5a5;
+}
+.progress-alert .percent {
+  border-left: 4px solid #1de148;
+  color: var(--link);
+  font-weight: 600;
+}
+
+/* Form */
+form {
+  background: var(--panel-bg);
+  padding: 1.8rem;
+  border-radius: var(--radius);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+textarea, select {
+  width: 100%;
+  padding: .7rem 1rem;
+  border: 1px solid #333;
+  border-radius: var(--radius);
+  background: #000;
+  color: var(--accent);
+  font-size: .95rem;
+  resize: vertical;
+}
+button {
+  padding: .8rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #000;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background .2s;
+}
+button:hover { background: var(--accent-muted); }
+
+/* Progress + Cancel */
+#progress-area {
+  display: none;
+  gap: 1rem;
+  align-items: center;
+}
+.progress-bar {
+  flex: 1;
+  background: #333;
+  border-radius: var(--radius);
+  overflow: hidden;
+  height: 1rem;
+}
+.progress-bar-inner {
+  background: var(--accent);
+  height: 100%;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+#cancel-btn {
+  background: #e11d48;
+  color: #fff;
+}
+#cancel-btn:hover {
+  background: #be123c;
+}
+
+/* Results – compact */
+#results { margin-top: 1rem; }
+.search-result { margin-bottom: 1.2rem; }
+.search-result h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+.search-result h3 a {
+  color: var(--link);
+  text-decoration: none;
+}
+.search-result h3 a:hover { text-decoration: underline; }
+.search-result .link {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  margin: 0.1rem 0;
+}
+.search-result .description {
+  color: var(--accent-muted);
+  font-size: 0.85rem;
+  margin-top: 0.1rem;
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  color: var(--accent-muted);
+  font-size: .85rem;
+  padding: 1rem 0 2rem;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>⚡ FLARE</h1>
+  <p>PyPI library recommendations from your project description</p>
+</header>
+
+<main>
+  <!-- Search Form -->
+  <form onsubmit="event.preventDefault(); search();">
+    <textarea id="description" rows="3" placeholder="Describe your software or project…"></textarea>
+
+    <select id="task">
+      <option value="1" selected>Reuse</option>
+      <option value="2">Build</option>
+    </select>
+
+    <div id="controls">
+      <button type="submit" id="search-btn">Recommend Libraries</button>
     </div>
-    <div class="g-1 row d-flex justify-content-center">
-        <div class="g-1 row d-flex justify-content-center w-25">
-            <div class="col-md-6 w-50">
-            <button type="button" class="btn btn-outline-primary w-100" OnClick="search()"
-            data-bs-toggle="tooltip" data-bs-placement="bottom"  title="Enhanced search in PyPI."
-            >Recommend libraries</button>
-            </div>
-            <div class="col-md-6 w-50">
-            <div class="col-md-6 w-50">
-            <select class="form-select me-3 w-100 btn-outline-secondary" aria-label="Select task" id="task"
-            data-bs-toggle="tooltip" data-bs-placement="bottom"  title="Whether you plan to reuse
-             or build the described software."
-            >
-              <option selected value="1">reuse</option>
-              <option value="2">build</option>
-            </select>
-            </div>
-            </div>
-        </div>
+
+    <!-- Progress + Cancel -->
+    <div id="progress-area">
+      <div class="progress-bar">
+        <div class="progress-bar-inner" id="progress-bar-inner"></div>
+      </div>
+      <button type="button" id="cancel-btn">Cancel Search</button>
     </div>
-    <div class="g-1 row d-flex justify-content-center">
-        <div class="col-md-6 w-75">
-            <div class="accordion" id="results" data-bs-toggle="collapse"></div>
-        </div>
+  </form>
+
+  <!-- Info cards -->
+  <div class="cards" id="info-cards">
+    <div class="card">
+      <h2>🛠️ Build vs Reuse</h2>
+      <ul>
+        <li>Reuse: find existing Python libraries to integrate into your project</li>
+        <li>Build: discover libraries when you plan to implement the described software yourself</li>
+      </ul>
     </div>
-  <script>
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-          return new bootstrap.Tooltip(tooltipTriggerEl)
-        })
-  </script>
-  </body>
+
+    <div class="card">
+      <h2>🔎 Keyword & dependency analysis</h2>
+      <ul>
+        <li>Expands queries with synonyms</li>
+        <li>Examines dependencies between projects</li>
+        <li>Emulates human exploration</li>
+        <li>Recommends by relevance and context</li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="results"></div>
+</main>
+
+<footer>
+  &copy; 2025 FLARE. All rights reserved.
+</footer>
+
+<script>
+let updating;
+let currentId;
+
+function status(res) {
+  if (res.ok) return Promise.resolve(res);
+  clearInterval(updating);
+  return Promise.reject(new Error(res.statusText));
+}
+
+function update_search(identifier) {
+  fetch("/status/" + identifier)
+    .then(status)
+    .then(res => res.json())
+    .then(response => {
+      document.getElementById("progress-bar-inner").style.width = response.progress + "%";
+
+      if (response.progress === "100") {
+        clearInterval(updating);
+        showControls();
+        const cards = document.getElementById("info-cards");
+        document.getElementById("results").insertAdjacentElement("afterend", cards);
+        cards.style.display = "grid";
+      }
+      document.getElementById("results").innerHTML = styleResults(response.result);
+    });
+}
+
+function search() {
+  clearInterval(updating);
+  hideControls();
+  document.getElementById("info-cards").style.display = "none";
+  document.getElementById("progress-bar-inner").style.width = "0%";
+
+  fetch("/search", {
+    method: "POST",
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      task: document.getElementById("task").value,
+      search: document.getElementById("description").value
+    })
+  })
+  .then(status)
+  .then(res => res.json())
+  .then(response => {
+    currentId = response.identifier;
+    updating = setInterval(() => update_search(currentId), 500);
+  });
+}
+
+function cancelSearch() {
+  if (confirm("Cancel search? Any progress will be lost.")) {
+    clearInterval(updating);
+    showControls();
+  }
+}
+
+function hideControls() {
+  document.getElementById("controls").style.display = "none";
+  document.getElementById("progress-area").style.display = "flex";
+}
+
+function showControls() {
+  document.getElementById("controls").style.display = "block";
+  document.getElementById("progress-area").style.display = "none";
+}
+
+function styleResults(rawHtml) {
+  return rawHtml.replace(/accordion-item/g, 'search-result');
+}
+
+document.getElementById("cancel-btn").addEventListener("click", cancelSearch);
+</script>
+
+</body>
 </html>

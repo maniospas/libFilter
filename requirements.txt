@@ -1,0 +1,6 @@
+flask
+pygrank
+lxml
+requests
+nltk
+tqdm

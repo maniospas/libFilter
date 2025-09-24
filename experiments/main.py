@@ -1,7 +1,7 @@
 from utils.tester import test
 from utils.importer import load_data
 import pygrank as pg
-from bibliography.cosimrank import CoSimRank
+from experiments.bibliography.cosimrank import CoSimRank
 
 
 pre = pg.preprocessor(assume_immutability=True, normalization="symmetric", renormalize=1)

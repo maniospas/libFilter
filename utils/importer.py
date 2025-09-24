@@ -44,7 +44,7 @@ def load_features(nodes, path="data/", embeddings=True):
             line = line[:-1].split(',')
             line[0] = "A" + line[0]
             features[line[0]] = _split_to_words(line[1])
-    with open('../data/lib_info.csv') as file:
+    with open('../experiments/data/lib_info.csv') as file:
         for line in file:
             line = line[:-1].split(',')
             line[0] = "L" + line[0]

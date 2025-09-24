@@ -1,7 +1,7 @@
 from pypigraph import Packages, tokenize
 from utils.measures import Evaluator
 import pygrank as pg
-from bibliography.cosimrank import CoSimRank
+from experiments.bibliography.cosimrank import CoSimRank
 
 
 packages = Packages()
